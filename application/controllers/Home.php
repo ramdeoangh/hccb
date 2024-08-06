@@ -257,6 +257,122 @@ class Home extends CI_Controller
         $this->load->view('frontend/' . get_frontend_settings('theme') . '/index', $page_data);
     }
 
+    public function nmlanding($slug = "", $token = "")
+    {
+        $decryptedValue=explode("-",$this->user_model->encrypt_decrypt('decrypt', $token));   
+        $user_Id=array_slice($decryptedValue, 0, 1)[0];
+        $course_id=  array_slice($decryptedValue, 1, 1)[0];
+        $portal_user_id=  array_slice($decryptedValue, 3, 1)[0];
+         
+        $query = $this->db->get_where('users', ['user_id' => $user_Id,'portal_user_id' =>$portal_user_id]);
+              
+        if ($query->num_rows() == 0) {
+            $this->page_not_found();   
+            return;       
+        }
+     
+        if ($this->session->userdata('user_id') != $user_Id || !empty($this->session->userdata('user_id'))) {
+            $this->session->unset_userdata('user_id');
+            $this->session->unset_userdata('role_id');
+            $this->session->unset_userdata('role');
+            $this->session->unset_userdata('name');
+            $this->session->unset_userdata('user_login');           
+        }
+
+        $this->api_model->login_for_web_view($user_Id);
+
+        //course_addon end 
+
+
+        $this->home();
+    }
+
+    public function nmcourses($slug = "", $token = "")
+    {
+        $decryptedValue=explode("-",$this->user_model->encrypt_decrypt('decrypt', $token));   
+        $user_Id=array_slice($decryptedValue, 0, 1)[0];
+        $course_id=  array_slice($decryptedValue, 1, 1)[0];
+         
+        $query = $this->db->get_where('enrol', ['user_id' => $user_Id,'course_id' =>$course_id]);
+              
+        if ($query->num_rows() == 0) {
+            $this->page_not_found();   
+            return;       
+        }
+     
+        if ($this->session->userdata('user_id') != $user_Id || !empty($this->session->userdata('user_id'))) {
+            $this->session->unset_userdata('user_id');
+            $this->session->unset_userdata('role_id');
+            $this->session->unset_userdata('role');
+            $this->session->unset_userdata('name');
+            $this->session->unset_userdata('user_login');           
+        }
+
+        $this->api_model->login_for_web_view($user_Id);
+
+        //course_addon end 
+
+
+        $this->access_denied_courses($course_id);
+        $page_data['course_id'] = $course_id;
+        $page_data['page_name'] = "course_page";
+        $page_data['page_title'] = site_phrase('course');
+
+    
+        $this->load->view('frontend/' . get_frontend_settings('theme') . '/index', $page_data);
+    }
+
+    public function nmcourse($userId = "",$slug = "", $course_id = "")
+    {
+        
+        if (addon_status('affiliate_course')) {
+            if (isset($_GET['ref'])) {
+                $CI    = &get_instance();
+                $CI->load->model('addons/affiliate_course_model');
+                $affiliator_details_for_checking_active_status = $_GET['ref'];
+                $check_validity = $CI->affiliate_course_model->get_user_by_unique_identifier($affiliator_details_for_checking_active_status);
+           
+                if ($check_validity['status'] == 1 && $check_validity['user_id']!=$this->session->userdata('user_id')) {
+
+                    if (isset($_GET['ref'])) {
+                        $this->session->set_userdata('course_referee', $_GET['ref']);
+                        $this->session->set_userdata('course_reffer_id', $course_id);
+                    } elseif ($this->session->userdata('user_id') != $course_id) {
+                        $this->session->unset_userdata('course_referee');
+                        $this->session->unset_userdata('course_reffer_id');
+                    }
+                }
+                else
+                {
+                    $this->session->set_flashdata('error_message', get_phrase('you can not reffer yourself'));
+                    redirect(site_url('home/courses'), 'refresh');
+            
+                }
+            }
+        }
+
+        if ($this->session->userdata('user_id') != $userId || !empty($this->session->userdata('user_id'))) {
+            $this->session->unset_userdata('user_id');
+            $this->session->unset_userdata('role_id');
+            $this->session->unset_userdata('role');
+            $this->session->unset_userdata('name');
+            $this->session->unset_userdata('user_login');           
+        }
+
+        $this->api_model->login_for_web_view($userId);
+
+        //course_addon end 
+
+
+        $this->access_denied_courses($course_id);
+        $page_data['course_id'] = $course_id;
+        $page_data['page_name'] = "course_page";
+        $page_data['page_title'] = site_phrase('course');
+
+    
+        $this->load->view('frontend/' . get_frontend_settings('theme') . '/index', $page_data);
+    }
+
     public function instructor_page($instructor_id = "")
     {
         $page_data['page_name'] = "instructor_page";
@@ -1499,7 +1615,7 @@ class Home extends CI_Controller
     //Mark this lesson as completed automatically
     function update_watch_history_with_duration()
     {
-        echo $this->crud_model->update_watch_history_with_duration();
+        echo $this->crud_model->update_watch_history_with_duration();          
     }
 
     // Mark this lesson as completed codes

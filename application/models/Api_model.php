@@ -28,7 +28,8 @@ class Api_model extends CI_Model
 		return $result;
 	}
 
-	function all_categories_get(){
+	function all_categories_get()
+	{
 		$all_categories = array();
 		$this->db->where('parent', 0);
 		$categories = $this->db->get('category')->result_array();
@@ -76,7 +77,7 @@ class Api_model extends CI_Model
 			$category['number_of_courses'] = $number_of_courses;
 			$response[$key] = $category;
 		}
-		
+
 		return $response;
 	}
 
@@ -263,7 +264,7 @@ class Api_model extends CI_Model
 				$system_settings_data[$row['key']] = $row['value'];
 			}
 		}
-		$system_settings_data['thumbnail'] = base_url() . 'uploads/system/'.get_frontend_settings('dark_logo');
+		$system_settings_data['thumbnail'] = base_url() . 'uploads/system/' . get_frontend_settings('dark_logo');
 		return $system_settings_data;
 	}
 
@@ -287,15 +288,15 @@ class Api_model extends CI_Model
 				$row['key'] == "allowed_device_number_of_loging" ||
 				$row['key'] == "drip_content_settings"
 			) {
-				if(isJson($row['value'])){
+				if (isJson($row['value'])) {
 					$system_settings_data[$row['key']] = json_decode($row['value'], true);
-				}else{
+				} else {
 					$system_settings_data[$row['key']] = $row['value'];
 				}
 			}
 		}
-		$system_settings_data['thumbnail'] = base_url() . 'uploads/system/'.get_frontend_settings('dark_logo');
-		$system_settings_data['favicon'] = base_url() . 'uploads/system/'.get_frontend_settings('favicon');
+		$system_settings_data['thumbnail'] = base_url() . 'uploads/system/' . get_frontend_settings('dark_logo');
+		$system_settings_data['favicon'] = base_url() . 'uploads/system/' . get_frontend_settings('favicon');
 		return $system_settings_data;
 	}
 
@@ -317,135 +318,135 @@ class Api_model extends CI_Model
 			$userdata['role'] = strtolower(get_user_role('user_role', $row['id']));
 			$userdata['validity'] = 1;
 
-			if($response['validity'] == 1){
-                $userdata['device_verification'] = 'no-need-verification';
-			}else{
-                $userdata['device_verification'] = 'needed-verification';
+			if ($response['validity'] == 1) {
+				$userdata['device_verification'] = 'no-need-verification';
+			} else {
+				$userdata['device_verification'] = 'needed-verification';
 			}
 		} else {
 			$userdata['validity'] = 0;
-            $userdata['device_verification'] = 'invalid-login-credentials';
+			$userdata['device_verification'] = 'invalid-login-credentials';
 		}
 		return $userdata;
 	}
 
 
 	public function new_device_login_tracker($user_id = "", $is_verified = '')
-    {
-        $pre_sessions = array();
-        $updated_session_arr = array();
-        $current_session_id = session_id();
-        $this->db->where('id', $user_id);
-        $sessions = $this->db->get('users');
+	{
+		$pre_sessions = array();
+		$updated_session_arr = array();
+		$current_session_id = session_id();
+		$this->db->where('id', $user_id);
+		$sessions = $this->db->get('users');
 
-        if($sessions->row('role_id') == 1){
-            return;
-        }
+		if ($sessions->row('role_id') == 1) {
+			return;
+		}
 
-        $pre_sessions = json_decode($sessions->row('sessions'), true);
+		$pre_sessions = json_decode($sessions->row('sessions'), true);
 
-        if(is_array($pre_sessions) && count($pre_sessions) > 0){
-            if($is_verified == true && !in_array($current_session_id, $pre_sessions)){
-                $allowed_device = get_settings('allowed_device_number_of_loging');
-                $previous_tatal_device = count($pre_sessions) + 1; //current device
+		if (is_array($pre_sessions) && count($pre_sessions) > 0) {
+			if ($is_verified == true && !in_array($current_session_id, $pre_sessions)) {
+				$allowed_device = get_settings('allowed_device_number_of_loging');
+				$previous_tatal_device = count($pre_sessions) + 1; //current device
 
-                $removeable_device = $previous_tatal_device - $allowed_device;
+				$removeable_device = $previous_tatal_device - $allowed_device;
 
-                foreach($pre_sessions as $key => $pre_session){
-                    if($removeable_device >= 1){
-                        $this->db->where('id', $pre_session);
-                        $this->db->delete('ci_sessions');
-                    }else{
+				foreach ($pre_sessions as $key => $pre_session) {
+					if ($removeable_device >= 1) {
+						$this->db->where('id', $pre_session);
+						$this->db->delete('ci_sessions');
+					} else {
 
-                        if($this->db->get_where('ci_sessions', ['id' => $pre_session])->num_rows() > 0){
-                            array_push($updated_session_arr, $pre_session);                        
-                        }
-                    }
-                    $removeable_device = $removeable_device - 1;
-                }
-                array_push($updated_session_arr, $current_session_id);
-            }else{
-                if(!in_array($current_session_id, $pre_sessions)){
-                    if(count($pre_sessions) >= get_settings('allowed_device_number_of_loging')){
-                        $this->email_model->new_device_login_alert($user_id);
-                        
-                        $response['validity'] = 0;
-                        $response['device_verification'] = 1;
-                    }else{
-                        $updated_session_arr = $pre_sessions;
-                        array_push($updated_session_arr, $current_session_id);
-                    }
-                }
-            }
-        }else{
-            $updated_session_arr = [$current_session_id];
-        }
+						if ($this->db->get_where('ci_sessions', ['id' => $pre_session])->num_rows() > 0) {
+							array_push($updated_session_arr, $pre_session);
+						}
+					}
+					$removeable_device = $removeable_device - 1;
+				}
+				array_push($updated_session_arr, $current_session_id);
+			} else {
+				if (!in_array($current_session_id, $pre_sessions)) {
+					if (count($pre_sessions) >= get_settings('allowed_device_number_of_loging')) {
+						$this->email_model->new_device_login_alert($user_id);
 
-        if(count($updated_session_arr) > 0){
-            $data['sessions'] = json_encode($updated_session_arr);
-            $this->db->where('id', $user_id);
-            $this->db->update('users', $data);
-        }
+						$response['validity'] = 0;
+						$response['device_verification'] = 1;
+					} else {
+						$updated_session_arr = $pre_sessions;
+						array_push($updated_session_arr, $current_session_id);
+					}
+				}
+			}
+		} else {
+			$updated_session_arr = [$current_session_id];
+		}
+
+		if (count($updated_session_arr) > 0) {
+			$data['sessions'] = json_encode($updated_session_arr);
+			$this->db->where('id', $user_id);
+			$this->db->update('users', $data);
+		}
 
 
-        if(isset($response)){
-        }else{
-        	$response['validity'] = 1;
+		if (isset($response)) {
+		} else {
+			$response['validity'] = 1;
 			$response['device_verification'] = 0;
-        }
+		}
 		return $response;
+	}
 
-    }
+	function new_login_confirmation($param1 = "", $user_id = "")
+	{
+		$response = array();
+		// Checking login credential for admin
+		$query = $this->db->get_where('users', array('id' => $user_id));
+		$row = $query->row_array();
 
-    function new_login_confirmation($param1 = "", $user_id = ""){
-    	$response = array();
-    	// Checking login credential for admin
-        $query = $this->db->get_where('users', array('id' => $user_id));
-        $row = $query->row_array();
+		if ($param1 == 'submit') {
+			$new_device_verification_code = $this->input->post('new_device_verification_code');
+			if ($new_device_verification_code != $row['verification_code']) {
+				$response['user_id'] = $user_id;
+				$response['new_device_verification_code'] = $new_device_verification_code;
 
-        if($param1 == 'submit'){
-            $new_device_verification_code = $this->input->post('new_device_verification_code');
-            if($new_device_verification_code != $row['verification_code']){
-                $response['user_id'] = $user_id;
-                $response['new_device_verification_code'] = $new_device_verification_code;
+				$response['validity'] = 0;
+				$response['message'] = get_phrase('verification_code_is_wrong');
+				return $response;
+			}
 
-                $response['validity'] = 0;
-	            $response['message'] = get_phrase('verification_code_is_wrong');
-	            return $response;
-            }
 
-            
 
-            if ($query->num_rows() > 0) {
+			if ($query->num_rows() > 0) {
 
-                // For device login tracker
-                $this->new_device_login_tracker($row['id'], true);
-                $response['user_id'] = $row['id'];
+				// For device login tracker
+				$this->new_device_login_tracker($row['id'], true);
+				$response['user_id'] = $row['id'];
 				$response['first_name'] = $row['first_name'];
 				$response['last_name'] = $row['last_name'];
 				$response['email'] = $row['email'];
 				$response['role'] = strtolower(get_user_role('user_role', $row['id']));
-                $response['validity'] = 1;
-	            $response['message'] = get_phrase('Logged in successfully');
-	            return $response;
-            }else{
-            	$response['validity'] = 0;
-	            $response['message'] = get_phrase('something_is_wrong');
-	            return $response;
-            }
-        }
+				$response['validity'] = 1;
+				$response['message'] = get_phrase('Logged in successfully');
+				return $response;
+			} else {
+				$response['validity'] = 0;
+				$response['message'] = get_phrase('something_is_wrong');
+				return $response;
+			}
+		}
 
-        if($param1 == 'resend'){
-            $this->email_model->new_device_login_alert($user_id);
-            $response['validity'] = 1;
-            $response['message'] = get_phrase('verification_code_sent');
-            return $response;
-        }
+		if ($param1 == 'resend') {
+			$this->email_model->new_device_login_alert($user_id);
+			$response['validity'] = 1;
+			$response['message'] = get_phrase('verification_code_sent');
+			return $response;
+		}
 
-        $response['validity'] = 0;
-	    $response['message'] = get_phrase('something_is_wrong');
-	    return $response;
-    }
+		$response['validity'] = 0;
+		$response['message'] = get_phrase('something_is_wrong');
+		return $response;
+	}
 
 	// // For single device Login mechanism
 	// public function login_get($session_id = "")
@@ -460,7 +461,7 @@ class Api_model extends CI_Model
 	// 		$userdata['last_name'] = $row['last_name'];
 	// 		$userdata['email'] = $row['email'];
 	// 		$userdata['role'] = strtolower(get_user_role('user_role', $row['id']));
-			
+
 	// 		$userdata['session_id'] = $session_id;
 	// 		$userdata['validity'] = 1;
 	// 	} else {
@@ -473,124 +474,241 @@ class Api_model extends CI_Model
 	public function signup_post()
 	{
 		$response = array();
+		$request = array("first_name", "last_name", "email");
 
-		$data['first_name'] = $_POST['first_name'];
-		$data['last_name'] = $_POST['last_name'];
-	    $data['email'] = $_POST['email'];
-	    $data['password'] = sha1($_POST['password']);
-	    $verification_code = rand(100000, 999999);
-	    $data['verification_code'] = $verification_code;
+		$inputData = json_decode(file_get_contents('php://input'), true);
 
-	    if (get_settings('student_email_verification') == 'enable') {
-            $data['status'] = 0;
-        }else {
-            $data['status'] = 1;
-        }
 
-        $data['wishlist'] = json_encode(array());
-        $data['date_added'] = strtotime(date("Y-m-d H:i:s"));
-        $social_links = array(
-            'facebook' => "",
-            'twitter'  => "",
-            'linkedin' => ""
-        );
-        $data['social_links'] = json_encode($social_links);
-        $data['role_id']  = 2;
+		if (empty($inputData)) {
+			$response['message'] = 'invalid request body';
+			$response['email_verification'] = get_settings('student_email_verification');
+			$response['status'] = 403;
+			$response['validity'] = false;
 
-        $data['payment_keys'] = json_encode(array());
+			return $response;
+		}
 
-        $validity = $this->user_model->check_duplication('on_create', $data['email']);
-        if($validity === 'unverified_user' || $validity == true) {
-        	if($validity === true){
-                $this->db->insert('users', $data);
+		$password = isset($_POST['password']) ? $_POST['password'] : "password";
 
-                $insert_id = $this->db->insert_id();
+		$data['first_name'] = trim(html_escape($inputData['first_name']));
+		$data['last_name'] = trim(html_escape($inputData['last_name']));
+		$data['email'] = trim(html_escape($inputData['email']));
+		$data['password'] = sha1($password);
+		$verification_code = rand(100000, 999999);
+		$data['verification_code'] = $verification_code;
 
-		        if($insert_id > 0){
-		          $response['message'] = 'Registration successful';
-		          $response['email_verification'] = get_settings('student_email_verification');
-		          $response['status'] = 200;
-		          $response['validity'] = true;
-		          $response['verification_code'] = $verification_code;
-		        }else{
-		          $response['message'] = 'Registration updated successfully';
-		          $response['email_verification'] = get_settings('student_email_verification');
-		          $response['status'] = 200;
-		          $response['validity'] = true;
-		          $response['verification_code'] = $verification_code;
-		        }
-            } else{
-            	$response['message'] = 'Registration failed';
-            	$response['email_verification'] = get_settings('student_email_verification');
-		        $response['status'] = 403;
-		        $response['validity'] = false;
-            } 
-            if (get_settings('student_email_verification') == 'enable') {
-            	 if($validity === 'unverified_user'){
-            	 	$credentials = array('email' => $_POST['email'], 'status' => 0);
-	    			$query = $this->db->get_where('users', $credentials);
-	    			$this->email_model->send_email_verification_mail($data['email'], $query->row('verification_code'));
-                    $response['message'] = 'You have already signed up. Please check your inbox to verify your email address';
-                    $response['email_verification'] = get_settings('student_email_verification');
-                }else{
-                	$this->email_model->send_email_verification_mail($data['email'], $verification_code);
-                     $response['message'] = 'Registration successful. Please check your inbox to verify your email address';
-                     $response['email_verification'] = get_settings('student_email_verification');
-                }
-            } else {
-            	$this->user_model->register_user_update_code($data, $data['status']);
-            	$response['message'] = 'Registration successful';
-            	$response['email_verification'] = get_settings('student_email_verification');
-            }
-        } else {
-        	$response['message'] = 'This email userdata already exists';
-        	$response['email_verification'] = get_settings('student_email_verification');
-	        $response['status'] = 403;
-	        $response['validity'] = false;
-        }
-	    return $response;
+		if (get_settings('student_email_verification') == 'enable') {
+			$data['status'] = 0;
+		} else {
+			$data['status'] = 1;
+		}
+
+		$data['wishlist'] = json_encode(array());
+		$data['date_added'] = strtotime(date("Y-m-d H:i:s"));
+		$social_links = array(
+			'facebook' => "",
+			'twitter'  => "",
+			'linkedin' => ""
+		);
+		$data['social_links'] = json_encode($social_links);
+		$data['role_id']  = 2;
+
+		$data['payment_keys'] = json_encode(array());
+
+		$validity = $this->user_model->check_duplication('on_create', $data['email']);
+		if ($validity === 'unverified_user' || $validity == true) {
+			if ($validity === true) {
+				$this->db->insert('users', $data);
+
+				$insert_id = $this->db->insert_id();
+
+				if ($insert_id > 0) {
+					$response['message'] = 'Registration successful';
+					$response['email_verification'] = get_settings('student_email_verification');
+					$response['status'] = 200;
+					$response['validity'] = true;
+					$response['verification_code'] = $verification_code;
+				} else {
+					$response['message'] = 'Registration updated successfully';
+					$response['email_verification'] = get_settings('student_email_verification');
+					$response['status'] = 200;
+					$response['validity'] = true;
+					$response['verification_code'] = $verification_code;
+				}
+			} else {
+				$response['message'] = 'Registration failed';
+				$response['email_verification'] = get_settings('student_email_verification');
+				$response['status'] = 403;
+				$response['validity'] = false;
+			}
+			if (get_settings('student_email_verification') == 'enable') {
+				if ($validity === 'unverified_user') {
+					$credentials = array('email' => $_POST['email'], 'status' => 0);
+					$query = $this->db->get_where('users', $credentials);
+					$this->email_model->send_email_verification_mail($data['email'], $query->row('verification_code'));
+					$response['message'] = 'You have already signed up. Please check your inbox to verify your email address';
+					$response['email_verification'] = get_settings('student_email_verification');
+				} else {
+					$this->email_model->send_email_verification_mail($data['email'], $verification_code);
+					$response['message'] = 'Registration successful. Please check your inbox to verify your email address';
+					$response['email_verification'] = get_settings('student_email_verification');
+				}
+			} else {
+				$this->user_model->register_user_update_code($data, $data['status']);
+				$response['message'] = 'Registration successful';
+				$response['email_verification'] = get_settings('student_email_verification');
+			}
+		} else {
+			$response['message'] = 'This email userdata already exists';
+			$response['email_verification'] = get_settings('student_email_verification');
+			$response['status'] = 403;
+			$response['validity'] = false;
+		}
+		return $response;
 	}
 
+	public function hccbsignup_post()
+	{
+		$response = array();
+		$request = array("first_name", "last_name", "email");
+
+		$inputData = json_decode(file_get_contents('php://input'), true);
+
+
+		if (empty($inputData)) {
+			$response['message'] = 'invalid request body';
+			$response['email_verification'] = get_settings('student_email_verification');
+			$response['status'] = false;
+			$response['validity'] = false;
+			return $response;
+		}
+
+		$password = isset($_POST['password']) ? $_POST['password'] : "password";
+
+		$data['first_name'] = trim(html_escape($inputData['student_name']));
+		$data['email'] = trim(html_escape($inputData['email']));
+		$data['password'] = sha1($password);
+		$verification_code = rand(100000, 999999);
+		$data['verification_code'] = $verification_code;
+		$data['description'] = $inputData['college_code'] . "|" . $inputData['college_name'] . "|" . $inputData['branch_name'] . "|" . $inputData['district'] . "|" . $inputData['university'];
+		$data['phone'] = trim(html_escape($inputData['phone']));
+		$data['portal_user_id'] = trim(html_escape($inputData['user_id']));
+		
+  
+		if (get_settings('student_email_verification') == 'enable') {
+			$data['status'] = 0;
+		} else {
+			$data['status'] = 1;
+		}
+
+		$data['wishlist'] = json_encode(array());
+		$data['date_added'] = strtotime(date("Y-m-d H:i:s"));
+		$social_links = array(
+			'facebook' => "",
+			'twitter'  => "",
+			'linkedin' => ""
+		);
+		$data['social_links'] = json_encode($social_links);
+		$data['role_id']  = 2;
+
+		$data['payment_keys'] = json_encode(array());
+ 
+		$validity = $this->user_model->check_duplication('on_create', $data['email']);
+		if ($validity === 'unverified_user' || $validity == true) {
+			if ($validity === true) {
+				$this->db->insert('users', $data);
+
+				$insert_id = $this->db->insert_id();
+
+				if ($insert_id > 0) {
+					$response['message'] = 'Registration successful';
+					$response['email_verification'] = get_settings('student_email_verification');
+					$response['status'] = 200;
+					$response['validity'] = true;
+					$response['verification_code'] = $verification_code;
+				} else {
+					$response['message'] = 'Registration updated successfully';
+					$response['email_verification'] = get_settings('student_email_verification');
+					$response['status'] = 200;
+					$response['validity'] = true;
+					$response['verification_code'] = $verification_code;
+				}
+			} else {
+				$response['message'] = 'Registration failed';
+				$response['email_verification'] = get_settings('student_email_verification');
+				$response['status'] = 403;
+				$response['validity'] = false;
+			}
+			if (get_settings('student_email_verification') == 'enable') {
+				if ($validity === 'unverified_user') {
+					$credentials = array('email' => $_POST['email'], 'status' => 0);
+					$query = $this->db->get_where('users', $credentials);
+					$this->email_model->send_email_verification_mail($data['email'], $query->row('verification_code'));
+					$response['message'] = 'You have already signed up. Please check your inbox to verify your email address';
+					$response['email_verification'] = get_settings('student_email_verification');
+				} else {
+					$this->email_model->send_email_verification_mail($data['email'], $verification_code);
+					$response['message'] = 'Registration successful. Please check your inbox to verify your email address';
+					$response['email_verification'] = get_settings('student_email_verification');
+				}
+			} else {
+				$this->user_model->register_user_update_code($data, $data['status']);
+				$response['message'] = 'Registration successful';
+				$response['email_verification'] = get_settings('student_email_verification');
+			}
+		} else {
+			$response['message'] = 'This email userdata already exists';
+			$response['email_verification'] = get_settings('student_email_verification');
+			$response['status'] = 403;
+			$response['validity'] = false;
+		}
+		logger(__METHOD__,$data,$response);
+		return $response;
+	}
+
+
 	// Email verify
-	public function verify_email_address_post(){
-	    $response = array();
-	    $credentials = array('email' => $_POST['email'], 'verification_code' => $_POST['verification_code'], 'status' => 0);
-	    $query = $this->db->get_where('users', $credentials);
-	    if($query->num_rows() > 0){
-	      $this->db->where('id', $query->row('id'));
-	      $this->db->update('users', array('status' => 1));
+	public function verify_email_address_post()
+	{
+		$response = array();
+		$credentials = array('email' => $_POST['email'], 'verification_code' => $_POST['verification_code'], 'status' => 0);
+		$query = $this->db->get_where('users', $credentials);
+		if ($query->num_rows() > 0) {
+			$this->db->where('id', $query->row('id'));
+			$this->db->update('users', array('status' => 1));
 
-	      $response['message'] = 'Email verification successfully';
-	      $response['status'] = 200;
-	      $response['validity'] = true;
-	    }else{
-	      $response['message'] = 'Verification code not matched';
-	      $response['status'] = 403;
-	      $response['validity'] = false;
-	    }
+			$response['message'] = 'Email verification successfully';
+			$response['status'] = 200;
+			$response['validity'] = true;
+		} else {
+			$response['message'] = 'Verification code not matched';
+			$response['status'] = 403;
+			$response['validity'] = false;
+		}
 
-	    return $response;
-  	}
+		return $response;
+	}
 
-  	// Resend Verification Code
-	public function resend_verification_code_post(){
-	    $response = array();
-	    $check['email'] = $_POST['email'];
-	    $credentials = array('email' => $_POST['email'], 'status' => 0);
-	    $query = $this->db->get_where('users', $credentials);
-	    if($query->num_rows() > 0) {
-	    	$this->email_model->send_email_verification_mail($check['email'], $query->row('verification_code'));
-	    	$response['message'] = 'Please check your inbox to verify your email address';
-	      	$response['status'] = 200;
-	      	$response['validity'] = true;
-	    } else{
-	    	$response['message'] = 'Verification code not send';
-	    	$response['status'] = 403;
-	    	$response['validity'] = false;
-	    }
+	// Resend Verification Code
+	public function resend_verification_code_post()
+	{
+		$response = array();
+		$check['email'] = $_POST['email'];
+		$credentials = array('email' => $_POST['email'], 'status' => 0);
+		$query = $this->db->get_where('users', $credentials);
+		if ($query->num_rows() > 0) {
+			$this->email_model->send_email_verification_mail($check['email'], $query->row('verification_code'));
+			$response['message'] = 'Please check your inbox to verify your email address';
+			$response['status'] = 200;
+			$response['validity'] = true;
+		} else {
+			$response['message'] = 'Verification code not send';
+			$response['status'] = 403;
+			$response['validity'] = false;
+		}
 
-	    return $response;
-  	}
+		return $response;
+	}
 
 	// My Courses
 	public function my_courses_get($user_id = "")
@@ -697,14 +815,14 @@ class Api_model extends CI_Model
 			$response[$key]['video_type_web'] = $lesson['video_type'];
 			$response[$key]['lesson_type'] = $lesson['lesson_type'];
 			$response[$key]['is_free'] = $lesson['is_free'];
-			if($lesson['lesson_type'] == 'text'){
-                $response[$key]['attachment'] = remove_js(htmlspecialchars_decode_($lesson['attachment']));
-            }else{
-                $response[$key]['attachment'] = $lesson['attachment'];
-            }
-            $response[$key]['attachment_url'] = base_url() . 'uploads/lesson_files/' . $lesson['attachment'];
-            $response[$key]['attachment_type'] = $lesson['attachment_type'];
-            $response[$key]['summary'] = remove_js(htmlspecialchars_decode_($lesson['summary']));
+			if ($lesson['lesson_type'] == 'text') {
+				$response[$key]['attachment'] = remove_js(htmlspecialchars_decode_($lesson['attachment']));
+			} else {
+				$response[$key]['attachment'] = $lesson['attachment'];
+			}
+			$response[$key]['attachment_url'] = base_url() . 'uploads/lesson_files/' . $lesson['attachment'];
+			$response[$key]['attachment_type'] = $lesson['attachment_type'];
+			$response[$key]['summary'] = remove_js(htmlspecialchars_decode_($lesson['summary']));
 			if ($user_id > 0) {
 				$response[$key]['is_completed'] = lesson_progress($lesson['id'], $user_id);
 			} else {
@@ -789,7 +907,7 @@ class Api_model extends CI_Model
 		if ($user_id > 0) {
 			if (enroll_status($course_id, $user_id) == 'valid') {
 				return 1;
-			}else{
+			} else {
 				return 0;
 			}
 		} else {
@@ -827,6 +945,41 @@ class Api_model extends CI_Model
 		$course['total_enrollment'] = $this->crud_model->enrol_history($course['id'])->num_rows();
 		$course['shareable_link'] = site_url('home/course/' . slugify($course['title']) . '/' . $course['id']);
 		return $course;
+	}
+
+	public function hccb_course_object_by_id_get($user_id = "", $course_id = "", $token = "")
+	{
+
+		$course = $this->crud_model->get_course_by_id($course_id)->row_array();
+		// $course['requirements'] = json_decode($course['requirements']);
+		// $course['outcomes'] = json_decode($course['outcomes']);
+		// $course['thumbnail'] = $this->get_image('course_thumbnail', $course['id']);
+		// if ($course['is_free_course'] == 1) {
+		// 	$course['price'] = 'Free';
+		// } else {
+		// 	if ($course['discount_flag'] == 1) {
+		// 		$course['price'] = currency($course['discounted_price']);
+		// 	} else {
+		// 		$course['price'] = currency($course['price']);
+		// 	}
+		// }
+		// $total_rating =  $this->crud_model->get_ratings('course', $course['id'], true)->row()->rating;
+		// $number_of_ratings = $this->crud_model->get_ratings('course', $course['id'])->num_rows();
+		// if ($number_of_ratings > 0) {
+		// 	$course['rating'] = ceil($total_rating / $number_of_ratings);
+		// } else {
+		// 	$course['rating'] = 0;
+		// }
+		// $course['number_of_ratings'] = $number_of_ratings;
+		// $instructor_details = $this->user_model->get_all_user($course['user_id'])->row_array();
+		// $course['instructor_name'] = $instructor_details['first_name'] . ' ' . $instructor_details['last_name'];
+		// $course['total_enrollment'] = $this->crud_model->enrol_history($course['id'])->num_rows();
+		$course['shareable_link'] = site_url('home/nmcourse/' . $user_id . '/' . slugify($course['title']) . '/' . $course['id']);
+		$course['access_url'] = site_url('home/nmcourses/' . slugify($course['title']) . '/' . $token);
+
+		//$response['shareable_link'] = $course['shareable_link'];
+		$response['access_url'] = $course['access_url'];
+		return $response;
 	}
 
 	// save lesson completion status
@@ -954,7 +1107,8 @@ class Api_model extends CI_Model
 					$insert_data = array(
 						'course_id' => $course_id,
 						'student_id' => $user_id,
-						'shareable_url' => $certificate_identifier . '.jpg'
+						'shareable_url' => $certificate_identifier . '.jpg',
+						'created_at' => time()
 					);
 					$this->db->insert('certificates', $insert_data);
 					$this->certificate_model->create_certificate($user_id, $course_id, $certificate_identifier);
@@ -979,23 +1133,24 @@ class Api_model extends CI_Model
 
 		return $response;
 	}
-	
-
-	function forgot_password_post(){
-    	$email = $this->input->post('email');
-        $verification_code = str_replace('=', '', base64_encode($email.'_Uh6#@#6hU_'.rand(111111, 9999999)));
-        $this->db->where('email', $email);
-        $this->db->update('users', array('verification_code' => $verification_code, 'last_modified' => time()));
-        // send new password reset link to user email
-        $this->email_model->password_reset_email($verification_code, $email);
-        return true;
-    }
 
 
+	function forgot_password_post()
+	{
+		$email = $this->input->post('email');
+		$verification_code = str_replace('=', '', base64_encode($email . '_Uh6#@#6hU_' . rand(111111, 9999999)));
+		$this->db->where('email', $email);
+		$this->db->update('users', array('verification_code' => $verification_code, 'last_modified' => time()));
+		// send new password reset link to user email
+		$this->email_model->password_reset_email($verification_code, $email);
+		return true;
+	}
 
-//Start bundle addon
+
+
+	//Start bundle addon
 	// get the bundle courses
-	public function bundles_get($limit ="")
+	public function bundles_get($limit = "")
 	{
 		$this->load->model('addons/course_bundle_model');
 		$result = array();
@@ -1006,7 +1161,7 @@ class Api_model extends CI_Model
 		$this->db->order_by('id', 'DESC');
 		$this->db->where('status', 1);
 		$bundle_courses = $this->db->get('course_bundle')->result_array();
-		
+
 		foreach ($bundle_courses as $key => $bundle_course) {
 			$ratings = $this->course_bundle_model->get_bundle_wise_ratings($bundle_course['id']);
 			$bundle_total_rating = $this->course_bundle_model->sum_of_bundle_rating($bundle_course['id']);
@@ -1014,7 +1169,7 @@ class Api_model extends CI_Model
 				$bundle_course['average_rating'] = ceil($bundle_total_rating / $ratings->num_rows());
 				$bundle_course['number_of_ratings'] = $ratings->num_rows();
 				$bundle_course['price'] = currency($bundle_course['price']);
-			}else {
+			} else {
 				$bundle_course['average_rating'] = 0;
 				$bundle_course['number_of_ratings'] = 0;
 				$bundle_course['price'] = currency($bundle_course['price']);
@@ -1025,7 +1180,7 @@ class Api_model extends CI_Model
 
 		return $result;
 	}
-	
+
 	public function bundle_courses_get($bundle_id = "", $user_id = "")
 	{
 		$this->load->model('addons/course_bundle_model');
@@ -1045,7 +1200,7 @@ class Api_model extends CI_Model
 		$result['bundle_details'] = $bundle_details['bundle_details'];
 		$result['status'] 		= $bundle_details['status'];
 		$result['date_added'] 	= $bundle_details['date_added'];
-		$result['user_name'] = $user_details['first_name'].' '.$user_details['last_name'];
+		$result['user_name'] = $user_details['first_name'] . ' ' . $user_details['last_name'];
 		$result['user_image'] = $this->user_model->get_user_image_url($user_details['id']);
 
 
@@ -1054,17 +1209,17 @@ class Api_model extends CI_Model
 		if ($ratings->num_rows() > 0) {
 			$result['average_rating'] = ceil($bundle_total_rating / $ratings->num_rows());
 			$result['number_of_ratings'] = $ratings->num_rows();
-		}else {
+		} else {
 			$result['average_rating'] = 0;
 			$result['number_of_ratings'] = 0;
 		}
 
-		if($user_id != ""){
+		if ($user_id != "") {
 			$result['subscription_status'] = get_bundle_validity($bundle_details['id'], $user_id);
-		}else{
+		} else {
 			$result['subscription_status'] = 'invalid';
 		}
-		
+
 		// This block of codes return the required data of bundle courses
 		$bundle_course_ids = json_decode($bundle_details['course_ids']);
 
@@ -1076,26 +1231,27 @@ class Api_model extends CI_Model
 		return array($result);
 	}
 
-	public function my_bundles_get($user_id = ""){
+	public function my_bundles_get($user_id = "")
+	{
 		$this->load->model('addons/course_bundle_model');
 		$result = array();
 
 		$this->db->order_by('id', 'desc');
 		$this->db->where('user_id', $user_id);
 		$bundle_payments = $this->db->get('bundle_payment')->result_array();
-		
+
 		foreach ($bundle_payments as $key => $bundle_payment) {
 			$this->db->where('id', $bundle_payment['bundle_id']);
 			$bundle_details = $this->db->get('course_bundle')->row_array();
 			$user_details 		= $this->db->get_where('users', array('id' => $bundle_details['user_id']))->row_array();
-			$bundle_details['user_name'] = $user_details['first_name'].' '.$user_details['last_name'];
+			$bundle_details['user_name'] = $user_details['first_name'] . ' ' . $user_details['last_name'];
 			$bundle_details['user_image'] = $this->user_model->get_user_image_url($user_details['id']);
 			$ratings = $this->course_bundle_model->get_bundle_wise_ratings($bundle_details['id']);
 			$bundle_total_rating = $this->course_bundle_model->sum_of_bundle_rating($bundle_details['id']);
 			if ($ratings->num_rows() > 0) {
 				$bundle_details['average_rating'] = ceil($bundle_total_rating / $ratings->num_rows());
 				$bundle_details['number_of_ratings'] = $ratings->num_rows();
-			}else {
+			} else {
 				$bundle_details['average_rating'] = 0;
 				$bundle_details['number_of_ratings'] = 0;
 			}
@@ -1108,14 +1264,16 @@ class Api_model extends CI_Model
 		return $result;
 	}
 
-	public function my_bundle_course_details_get($user_id= "", $bundle_id = "", $course_id = "")
+	public function my_bundle_course_details_get($user_id = "", $bundle_id = "", $course_id = "")
 	{
-		if(get_bundle_validity($bundle_id, $user_id) != 'valid'){return array(); }
+		if (get_bundle_validity($bundle_id, $user_id) != 'valid') {
+			return array();
+		}
 
 		$my_bundle_course_details = array();
 		$course_details = $this->crud_model->get_course_by_id($course_id)->row_array();
 		array_push($my_bundle_course_details, $course_details);
-		
+
 		$my_bundle_course_details = $this->course_data($my_bundle_course_details);
 		foreach ($my_bundle_course_details as $key => $my_course) {
 			if (isset($my_course['id']) && $my_course['id'] > 0) {
@@ -1126,7 +1284,7 @@ class Api_model extends CI_Model
 		}
 		return $my_bundle_course_details;
 	}
-//End Bundle
+	//End Bundle
 
 
 
@@ -1135,28 +1293,30 @@ class Api_model extends CI_Model
 
 
 
-  //Start Form addon
-	public function forum_add_questions_post($user_id = "", $course_id = "") {
-	    $response = array('status' => 200, 'message' => 'Your question has been added');
+	//Start Form addon
+	public function forum_add_questions_post($user_id = "", $course_id = "")
+	{
+		$response = array('status' => 200, 'message' => 'Your question has been added');
 
-	    $data['user_id'] = $user_id;
-	    $data['course_id'] = $course_id;
-	    $data['title'] = $this->input->post('title');
-	    $data['description'] = $this->input->post('description');
-	    $data['is_parent'] = 0;
-	    $data['date_added'] = time();
+		$data['user_id'] = $user_id;
+		$data['course_id'] = $course_id;
+		$data['title'] = $this->input->post('title');
+		$data['description'] = $this->input->post('description');
+		$data['is_parent'] = 0;
+		$data['date_added'] = time();
 
-	    $this->db->insert('course_forum', $data);
-	    if($this->db->insert_id() > 0){
-	    	return $response;
-	    }
+		$this->db->insert('course_forum', $data);
+		if ($this->db->insert_id() > 0) {
+			return $response;
+		}
 	}
 
 
-	public function forum_questions_get($user_id, $course_id = "", $page_number = 0, $limit = 20){
-		if($page_number != 0){
+	public function forum_questions_get($user_id, $course_id = "", $page_number = 0, $limit = 20)
+	{
+		if ($page_number != 0) {
 			$offset = ($page_number * $limit) - $limit;
-		}else{
+		} else {
 			$offset = 0;
 		}
 
@@ -1167,22 +1327,22 @@ class Api_model extends CI_Model
 		$this->db->where('is_parent', 0);
 		$questions = $this->db->get('course_forum');
 
-		foreach($questions->result_array() as $key => $question):
+		foreach ($questions->result_array() as $key => $question) :
 			$user_details 		= $this->db->get_where('users', array('id' => $question['user_id']))->row_array();
 			$question_arr[$key] = $question;
-			$question_arr[$key]['user_name'] = $user_details['first_name'].' '.$user_details['last_name'];
+			$question_arr[$key]['user_name'] = $user_details['first_name'] . ' ' . $user_details['last_name'];
 			$question_arr[$key]['user_image'] = $this->user_model->get_user_image_url($question['user_id']);
 
 
 			$upvoted_user_arr = json_decode($question['upvoted_user_id']);
-			if(is_array($upvoted_user_arr)){
+			if (is_array($upvoted_user_arr)) {
 				$upvoted_user_number = count($upvoted_user_arr);
-			}else{
+			} else {
 				$upvoted_user_number = 0;
 			}
 			$question_arr[$key]['upvoted_user_number'] = $upvoted_user_number;
 			$question_arr[$key]['comment_number'] = $this->db->get_where('course_forum', array('is_parent' => $question['id']))->num_rows();
-			if(is_array($upvoted_user_arr)){
+			if (is_array($upvoted_user_arr)) {
 				$is_liked = in_array($user_id, $upvoted_user_arr);
 			} else {
 				$is_liked = false;
@@ -1194,7 +1354,8 @@ class Api_model extends CI_Model
 
 
 
-	public function search_forum_questions_get($user_id, $course_id = ""){
+	public function search_forum_questions_get($user_id, $course_id = "")
+	{
 		$search_val = $_GET['search'];
 
 		$question_arr = array();
@@ -1207,22 +1368,22 @@ class Api_model extends CI_Model
 		$this->db->where('is_parent', 0);
 		$questions = $this->db->get('course_forum');
 
-		foreach($questions->result_array() as $key => $question):
+		foreach ($questions->result_array() as $key => $question) :
 			$user_details 		= $this->db->get_where('users', array('id' => $question['user_id']))->row_array();
 			$question_arr[$key] = $question;
-			$question_arr[$key]['user_name'] = $user_details['first_name'].' '.$user_details['last_name'];
+			$question_arr[$key]['user_name'] = $user_details['first_name'] . ' ' . $user_details['last_name'];
 			$question_arr[$key]['user_image'] = $this->user_model->get_user_image_url($question['user_id']);
-			
+
 
 			$upvoted_user_arr = json_decode($question['upvoted_user_id']);
-			if(is_array($upvoted_user_arr)){
+			if (is_array($upvoted_user_arr)) {
 				$upvoted_user_number = count($upvoted_user_arr);
-			}else{
+			} else {
 				$upvoted_user_number = 0;
 			}
 			$question_arr[$key]['upvoted_user_number'] = $upvoted_user_number;
 			$question_arr[$key]['comment_number'] = $this->db->get_where('course_forum', array('is_parent' => $question['id']))->num_rows();
-			if(is_array($upvoted_user_arr)){
+			if (is_array($upvoted_user_arr)) {
 				$is_liked = in_array($user_id, $upvoted_user_arr);
 			} else {
 				$is_liked = false;
@@ -1232,192 +1393,294 @@ class Api_model extends CI_Model
 		return $question_arr;
 	}
 
-	public function add_questions_reply_post($user_id = "", $parent_id = "") {
-	    $response = array('status' => 200, 'message' => 'Your reply has been added');
+	public function add_questions_reply_post($user_id = "", $parent_id = "")
+	{
+		$response = array('status' => 200, 'message' => 'Your reply has been added');
 
-	    $data['user_id'] = $user_id;
-	    $data['course_id'] = $this->db->get_where('course_forum', array('id' => $parent_id))->row()->course_id;
-	    $data['description'] = $this->input->post('description');
-	    $data['is_parent'] = $parent_id;
-	    $data['date_added'] = time();
+		$data['user_id'] = $user_id;
+		$data['course_id'] = $this->db->get_where('course_forum', array('id' => $parent_id))->row()->course_id;
+		$data['description'] = $this->input->post('description');
+		$data['is_parent'] = $parent_id;
+		$data['date_added'] = time();
 
-	    $this->db->insert('course_forum', $data);
-	    if($this->db->insert_id() > 0){
-	    	return $response;
-	    }
+		$this->db->insert('course_forum', $data);
+		if ($this->db->insert_id() > 0) {
+			return $response;
+		}
 	}
 
-	public function forum_child_questions_get($parent_question_id = "") {
+	public function forum_child_questions_get($parent_question_id = "")
+	{
 		$question_arr = array();
 		$this->db->where('is_parent', $parent_question_id);
 		$child_questions = $this->db->get('course_forum');
 
-		foreach($child_questions->result_array() as $key => $question):
+		foreach ($child_questions->result_array() as $key => $question) :
 			$user_details 		= $this->db->get_where('users', array('id' => $question['user_id']))->row_array();
 			$question_arr[$key] = $question;
-			$question_arr[$key]['user_name'] = $user_details['first_name'].' '.$user_details['last_name'];
+			$question_arr[$key]['user_name'] = $user_details['first_name'] . ' ' . $user_details['last_name'];
 			$question_arr[$key]['user_image'] = $this->user_model->get_user_image_url($question['user_id']);
 		endforeach;
 
 		return $question_arr;
 	}
 
-	public function forum_question_vote_get($user_id = "", $question_id = ""){
+	public function forum_question_vote_get($user_id = "", $question_id = "")
+	{
 		$array_data = array();
 
-        $this->db->where('id', $question_id);
-        $upvoted_user_ids = $this->db->get_where('course_forum')->row('upvoted_user_id');
-        if($upvoted_user_ids == 'null' || $upvoted_user_ids == null){
-            $data['upvoted_user_id'] = json_encode(array(0 => $user_id));
-            $return_type =  'upvoted';
-        }else{
-            $array_of_user_id = json_decode($upvoted_user_ids);
-            $array_data = $array_of_user_id;
+		$this->db->where('id', $question_id);
+		$upvoted_user_ids = $this->db->get_where('course_forum')->row('upvoted_user_id');
+		if ($upvoted_user_ids == 'null' || $upvoted_user_ids == null) {
+			$data['upvoted_user_id'] = json_encode(array(0 => $user_id));
+			$return_type =  'upvoted';
+		} else {
+			$array_of_user_id = json_decode($upvoted_user_ids);
+			$array_data = $array_of_user_id;
 
-            if(in_array($user_id, $array_of_user_id)){
-                $key = array_search($user_id, $array_of_user_id);
-                unset($array_data[$key]);
-                $array_data = array_values($array_data);
-                $return_type =  'unvoted';
-            }else{
-                array_push($array_data, $user_id);
-                $return_type = 'upvoted';
-            }
+			if (in_array($user_id, $array_of_user_id)) {
+				$key = array_search($user_id, $array_of_user_id);
+				unset($array_data[$key]);
+				$array_data = array_values($array_data);
+				$return_type =  'unvoted';
+			} else {
+				array_push($array_data, $user_id);
+				$return_type = 'upvoted';
+			}
 
-            $data['upvoted_user_id'] = json_encode($array_data);
+			$data['upvoted_user_id'] = json_encode($array_data);
+		}
 
-        }
+		$this->db->where('id', $question_id);
+		$this->db->update('course_forum', $data);
 
-        $this->db->where('id', $question_id);
-        $this->db->update('course_forum', $data);
-
-        $response['type'] = $return_type;
-        $response['total'] = count($array_data);
-        return $response;
+		$response['type'] = $return_type;
+		$response['total'] = count($array_data);
+		return $response;
 	}
 
-	public function forum_question_delete_get($user_id = "", $question_id = ""){
+	public function forum_question_delete_get($user_id = "", $question_id = "")
+	{
 		$response = array('status' => 200, 'message' => 'Your comment has been deleted');
 
 		$this->db->where('user_id', $user_id);
 		$this->db->where('id', $question_id);
-        $this->db->delete('course_forum');
-        return $response;
+		$this->db->delete('course_forum');
+		return $response;
 	}
 
 
 	function update_watch_history_with_duration_post($user_id = "")
-    {
-        $course_progress = 0;
-        $is_completed = 0;
-        $number_of_completed_lessons = 0;
-        $data['watched_course_id'] = htmlspecialchars_($this->input->post('course_id'));
-        $data['watched_lesson_id'] = htmlspecialchars_($this->input->post('lesson_id'));
-        $data['watched_student_id'] = $user_id;
+	{
+		$course_progress = 0;
+		$is_completed = 0;
+		$number_of_completed_lessons = 0;
+		$data['watched_course_id'] = htmlspecialchars_($this->input->post('course_id'));
+		$data['watched_lesson_id'] = htmlspecialchars_($this->input->post('lesson_id'));
+		$data['watched_student_id'] = $user_id;
 
-        $current_duration = htmlspecialchars_($this->input->post('current_duration'));
+		$current_duration = htmlspecialchars_($this->input->post('current_duration'));
 
-        $current_history = $this->db->get_where('watched_duration', $data);
-        if ($current_history->num_rows() > 0) {
-            $current_history = $current_history->row_array();
-            $watched_duration_arr = json_decode($current_history['watched_counter'], true);
-            if (!is_array($watched_duration_arr)) $watched_duration_arr = array();
-            if (!in_array($current_duration, $watched_duration_arr)) {
-                array_push($watched_duration_arr, $current_duration);
-            }
+		$current_history = $this->db->get_where('watched_duration', $data);
+		if ($current_history->num_rows() > 0) {
+			$current_history = $current_history->row_array();
+			$watched_duration_arr = json_decode($current_history['watched_counter'], true);
+			if (!is_array($watched_duration_arr)) $watched_duration_arr = array();
+			if (!in_array($current_duration, $watched_duration_arr)) {
+				array_push($watched_duration_arr, $current_duration);
+			}
 
-            $watched_duration_json = json_encode($watched_duration_arr);
+			$watched_duration_json = json_encode($watched_duration_arr);
 
-            $this->db->where('watched_course_id', $data['watched_course_id']);
-            $this->db->where('watched_lesson_id', $data['watched_lesson_id']);
-            $this->db->where('watched_student_id', $data['watched_student_id']);
-            $this->db->update('watched_duration', array('watched_counter' => $watched_duration_json));
-        } else {
-            $watched_duration_arr = array($current_duration);
-            $data['watched_counter'] = json_encode($watched_duration_arr);
-            $this->db->insert('watched_duration', $data);
-        }
+			$this->db->where('watched_course_id', $data['watched_course_id']);
+			$this->db->where('watched_lesson_id', $data['watched_lesson_id']);
+			$this->db->where('watched_student_id', $data['watched_student_id']);
+			$this->db->update('watched_duration', array('watched_counter' => $watched_duration_json));
+		} else {
+			$watched_duration_arr = array($current_duration);
+			$data['watched_counter'] = json_encode($watched_duration_arr);
+			$this->db->insert('watched_duration', $data);
+		}
 
 
-        $drip_content_settings = json_decode(get_settings('drip_content_settings'), true);
-        $lesson_total_duration = $this->db->get_where('lesson', array('id' => $data['watched_lesson_id']))->row('duration');
-        $lesson_total_duration = explode(':', $lesson_total_duration);
-        $lesson_total_seconds = ($lesson_total_duration[0] * 3600) + ($lesson_total_duration[1] * 60) + $lesson_total_duration[2];
-        $current_total_seconds = count($watched_duration_arr) * 5;
+		$drip_content_settings = json_decode(get_settings('drip_content_settings'), true);
+		$lesson_total_duration = $this->db->get_where('lesson', array('id' => $data['watched_lesson_id']))->row('duration');
+		$lesson_total_duration = explode(':', $lesson_total_duration);
+		$lesson_total_seconds = ($lesson_total_duration[0] * 3600) + ($lesson_total_duration[1] * 60) + $lesson_total_duration[2];
+		$current_total_seconds = count($watched_duration_arr) * 5;
 
-        if ($drip_content_settings['lesson_completion_role'] == 'duration') {
-            if ($current_total_seconds >= $drip_content_settings['minimum_duration']) {
-                $is_completed = 1;
-            } elseif (($current_total_seconds + 4) >= $lesson_total_seconds) {
-                $is_completed = 1;
-            }
-        } else {
-            $required_duration = ($lesson_total_seconds / 100) * $drip_content_settings['minimum_percentage'];
-            if ($current_total_seconds >= $required_duration) {
-                $is_completed = 1;
-            } elseif (($current_total_seconds + 4) >= $lesson_total_seconds) {
-                $is_completed = 1;
-            }
-        }
+		if ($drip_content_settings['lesson_completion_role'] == 'duration') {
+			if ($current_total_seconds >= $drip_content_settings['minimum_duration']) {
+				$is_completed = 1;
+			} elseif (($current_total_seconds + 4) >= $lesson_total_seconds) {
+				$is_completed = 1;
+			}
+		} else {
+			$required_duration = ($lesson_total_seconds / 100) * $drip_content_settings['minimum_percentage'];
+			if ($current_total_seconds >= $required_duration) {
+				$is_completed = 1;
+			} elseif (($current_total_seconds + 4) >= $lesson_total_seconds) {
+				$is_completed = 1;
+			}
+		}
 
-        if ($is_completed == 1) {
-            $query = $this->db->get_where('watch_histories', array('course_id' => $data['watched_course_id'], 'student_id' => $data['watched_student_id']));
-            $course_progress = $query->row('course_progress');
+		if ($is_completed == 1) {
+			$query = $this->db->get_where('watch_histories', array('course_id' => $data['watched_course_id'], 'student_id' => $data['watched_student_id']));
+			$course_progress = $query->row('course_progress');
 
-            if ($query->num_rows() > 0) {
-                $lesson_ids = json_decode($query->row('completed_lesson'), true);
-                if (!is_array($lesson_ids)) $lesson_ids = array();
-                if (!in_array($data['watched_lesson_id'], $lesson_ids)) {
-                    array_push($lesson_ids, $data['watched_lesson_id']);
-                    $total_lesson = $this->db->get_where('lesson', array('course_id' => $data['watched_course_id']))->num_rows();
-                    $course_progress = (100 / $total_lesson) * count($lesson_ids);
+			if ($query->num_rows() > 0) {
+				$lesson_ids = json_decode($query->row('completed_lesson'), true);
+				if (!is_array($lesson_ids)) $lesson_ids = array();
+				if (!in_array($data['watched_lesson_id'], $lesson_ids)) {
+					array_push($lesson_ids, $data['watched_lesson_id']);
+					$total_lesson = $this->db->get_where('lesson', array('course_id' => $data['watched_course_id']))->num_rows();
+					$course_progress = (100 / $total_lesson) * count($lesson_ids);
 
-                    $this->db->where('watch_history_id', $query->row('watch_history_id'));
-                    $this->db->update('watch_histories', array('course_progress' => $course_progress, 'completed_lesson' => json_encode($lesson_ids), 'date_updated' => time()));
+					$this->db->where('watch_history_id', $query->row('watch_history_id'));
+					$this->db->update('watch_histories', array('course_progress' => $course_progress, 'completed_lesson' => json_encode($lesson_ids), 'date_updated' => time()));
 
-                    // CHECK IF THE USER IS ELIGIBLE FOR CERTIFICATE
-                    if (addon_status('certificate') && $course_progress >= 100) {
-                        $this->load->model('addons/Certificate_model', 'certificate_model');
-                        $this->certificate_model->check_certificate_eligibility($data['watched_course_id'], $data['watched_student_id']);
-                    }
+					// CHECK IF THE USER IS ELIGIBLE FOR CERTIFICATE
+					if (addon_status('certificate') && $course_progress >= 100) {
+						$this->load->model('addons/Certificate_model', 'certificate_model');
+						$this->certificate_model->check_certificate_eligibility($data['watched_course_id'], $data['watched_student_id']);
+					}
 
-                    $number_of_completed_lessons = count($lesson_ids);
-                }else{
-                	$number_of_completed_lessons = count($lesson_ids);
-                }
-            }
-        }
-        return array('lesson_id' => $data['watched_lesson_id'], 'course_progress' => round($course_progress), 'is_completed' => $is_completed, 'number_of_completed_lessons' => $number_of_completed_lessons);
+					$number_of_completed_lessons = count($lesson_ids);
+				} else {
+					$number_of_completed_lessons = count($lesson_ids);
+				}
+			}
+		}
+		return array('lesson_id' => $data['watched_lesson_id'], 'course_progress' => round($course_progress), 'is_completed' => $is_completed, 'number_of_completed_lessons' => $number_of_completed_lessons);
+	}
+
+	function hccb_update_watch_history_with_duration_post($user_id = "",$course_id = "",$portal_user_id="")
+	{
+		$response = array('progress_percentage' => "0", 'certificate_issued' => "false", 'is_completed' => "false", 'assessment_status' => "false", 'course_complete' => "false", "certificate_url" => "","message"=>null);
+
+		$query = $this->db->get_where('watch_histories', array('course_id' => $course_id, 'student_id' => $user_id));
+		$course_progress = $query->row('course_progress');
+
+		if ($query->num_rows() > 0) {
+			$lesson_ids = json_decode($query->row('completed_lesson'), true);
+			$total_lesson = $this->db->get_where('lesson', array('course_id' => $course_id))->num_rows();
+			//$course_progress = (100 / $total_lesson) * count($lesson_ids);
+
+			if (addon_status('certificate') && $course_progress >= 100) {
+				$this->load->model('addons/Certificate_model', 'certificate_model');
+				$this->certificate_model->check_certificate_eligibility($course_id, $user_id);
+				$certificate_response = $this->certificate_model->get_certificate_details($user_id, $course_id);
+				$response["course_complete"] = "true";
+				$response["certificate_issued"] = "true";
+				$response["is_completed"] = "true";
+				$response["assessment_status"] = "true";
+				$response["certificate_url"] = $certificate_response['url'];
+				$response["certificate_issued_at"] = $certificate_response['certificate_issued_at'];
+			}
+			$response["user_unique_id"] = strval($portal_user_id);
+			$response["course_unique_code"] = strval($course_id);
+			$response["progress_percentage"] = strval(round($course_progress));			
+		}
+        
+		$request["user_id"]=$user_id;
+		$request["course_id"]=$course_id;
+		$request["portal_user_id"]=$portal_user_id;
+		logger(__METHOD__,$request,$response);
+
+		return $response;
+	}
+
+	//End Forum addon
+
+    function update_watch_history_with_duration_to_NM($request_data)
+    { 
+        $log= array("method_name"=>"update_watch_history_with_duration_to_NM","request_data"=>json_encode($request_data),"response_data"=>null,"access_token",null);
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+          CURLOPT_URL => 'https://api.naanmudhalvan.tn.gov.in/api/v1/lms/client/token/',
+          CURLOPT_RETURNTRANSFER => true,
+          CURLOPT_ENCODING => '',
+          CURLOPT_MAXREDIRS => 10,
+          CURLOPT_TIMEOUT => 0,
+          CURLOPT_FOLLOWLOCATION => true,
+          CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+          CURLOPT_CUSTOMREQUEST => 'POST',
+          CURLOPT_POSTFIELDS =>'{
+            "client_key": "14172249663d09fa2144d5feb92a438c",
+            "client_secret": "597446c8a43c7d380144000029ba6880"
+        }',
+          CURLOPT_HTTPHEADER => array(
+            'Content-Type: application/json'
+          ),
+        ));
+        
+        $response = curl_exec($curl);
+        
+        curl_close($curl);
+
+        $response_arr = json_decode($response, true);
+
+        $curl = curl_init();
+ 
+		$payload = json_encode( array( 
+			"user_unique_id"=> $request_data['user_unique_id'],
+			"course_unique_code"=> $request_data['course_unique_code'],
+			"progress_percentage"=> $request_data['progress_percentage'],
+			"certificate_issued"=> $request_data['certificate_issued'],
+			"certificate_issued_at"=> $request_data['certificate_issued_at'],
+			"assessment_status"=> $request_data['assessment_status'],
+			"course_complete"=> $request_data['course_complete'],
+			"total_score"=> $request_data['progress_percentage'] ) 
+		);
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://api.naanmudhalvan.tn.gov.in/api/v1/lms/client/course/xf/',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS =>$payload,
+            CURLOPT_HTTPHEADER => array(
+              'Content-Type: application/json',
+              'Authorization: Bearer '.$response_arr['token'],
+            ),
+          ));
+
+      $response = curl_exec($curl);
+
+      curl_close($curl);
+
+	  $log["response_data"]= json_decode($response, true);
+	  $log["access_token"]= $response_arr['token'];
+
+      logger(__METHOD__,$payload, $response);
+
+
+      return $response_arr = json_decode($response, true);
+
     }
 
-//End Forum addon
 
-
-
-
-//Logged in from mobile app only for web view. Avoite tracking multiple device login for mbile app web view
-    function login_for_web_view($user_id = ""){
-    	$query = $this->user_model->get_all_user($user_id);
-    	if($query->num_rows() > 0){
-	    	$row = $query->row();
-	    	if($this->session->userdata('user_login') != '1'){
-	    		//Session data added for 12 hours only for mobile view browser
-				$this->session->set_userdata('custom_session_limit', (time()+43200));
+	//Logged in from mobile app only for web view. Avoite tracking multiple device login for mbile app web view
+	function login_for_web_view($user_id = "")
+	{
+		$query = $this->user_model->get_all_user($user_id);
+		if ($query->num_rows() > 0) {
+			$row = $query->row();
+			if ($this->session->userdata('user_login') != '1') {
+				//Session data added for 12 hours only for mobile view browser
+				$this->session->set_userdata('custom_session_limit', (time() + 43200));
 				$this->session->set_userdata('user_id', $row->id);
 				$this->session->set_userdata('role_id', $row->role_id);
 				$this->session->set_userdata('role', get_user_role('user_role', $row->id));
 				$this->session->set_userdata('name', $row->first_name . ' ' . $row->last_name);
 				$this->session->set_userdata('is_instructor', $row->is_instructor);
 				$this->session->set_userdata('user_login', '1');
-		    }
+				$this->session->set_userdata('portal_user_id', $row->portal_user_id);
+			}
 		}
-    }
-
-
-
-
-
-
-
-
+	}
 }

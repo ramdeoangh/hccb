@@ -85,7 +85,7 @@
         setInterval(function() {
             currentDuration = parseInt(player.currentTime);
            
-            if (lesson_id && course_id && (currentDuration % 5) == 0 && previousSavedDuration != currentDuration) {
+            if (lesson_id && course_id && (currentDuration % 30) == 0 && previousSavedDuration != currentDuration) {
                 previousSavedDuration = currentDuration;
 
                 $.ajax({

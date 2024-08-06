@@ -25,7 +25,8 @@ class Certificate_model extends CI_Model
 			$insert_data = array(
 				'course_id' => $course_id,
 				'student_id' => $user_id,
-				'shareable_url' => $certificate_identifier
+				'shareable_url' => $certificate_identifier,
+				'created_at' => time()
 			);
 			$this->db->insert('certificates', $insert_data);
 			$this->email_model->notify_on_certificate_generate($user_id, $course_id);
@@ -81,6 +82,23 @@ class Certificate_model extends CI_Model
 			$result = $result->row_array();
 			$exploded_result = explode('.',$result['shareable_url']);
 			return site_url('certificate/'.$exploded_result[0]) ;
+		}else{
+			return "#";
+		}
+	}
+	public function get_certificate_details($user_id = "", $course_id = "") {
+		$checker = array(
+			'course_id' => $course_id,
+			'student_id' => $user_id
+		);
+		$result = $this->db->get_where('certificates', $checker);
+		if ($result->num_rows() > 0) {
+			$result = $result->row_array();
+			$exploded_result = explode('.',$result['shareable_url']);		
+
+			$response["url"]=site_url('certificate/'.$exploded_result[0]);
+			$response["certificate_issued_at"]=date("Y-m-d", $result['certificate_issued_at']);
+			return $response;
 		}else{
 			return "#";
 		}

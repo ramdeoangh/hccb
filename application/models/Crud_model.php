@@ -3312,7 +3312,9 @@ class Crud_model extends CI_Model
     // code of mark this lesson as completed
     function update_watch_history_manually($lesson_id = "", $course_id = "", $user_id = "")
     {
-        $is_completed = 0;
+        $course_progress=0;
+        try {
+            $is_completed = 0;
         if ($lesson_id == "") {
             $lesson_id = $this->input->post('lesson_id');
         }
@@ -3322,6 +3324,7 @@ class Crud_model extends CI_Model
         if ($user_id == "") {
             $user_id   = $this->session->userdata('user_id');
         }
+        $this->db->trans_start();
         $query = $this->db->get_where('watch_histories', array('course_id' => $course_id, 'student_id' => $user_id));
         $course_progress = $query->row('course_progress');
         if ($query->num_rows() > 0) {
@@ -3376,7 +3379,22 @@ class Crud_model extends CI_Model
             $this->db->insert('watch_histories', $insert_data);
         }
 
+        $portal_user_id = $this->session->userdata('portal_user_id');
+        if(isset($portal_user_id) && !empty($portal_user_id) && round($course_progress) ==100) {
+            $user_id = $this->session->userdata('user_id');        
+            $durationUpdateResponse=   $this->api_model->hccb_update_watch_history_with_duration_post( $user_id,$course_id,$portal_user_id);     
+            $durationUpdateResponse_fromNM=   $this->api_model->update_watch_history_with_duration_to_NM( $durationUpdateResponse); 
+        }
+
+        $this->db->trans_complete(); # Completing transaction
+
         return json_encode(array('lesson_id' => $lesson_id, 'course_progress' => round($course_progress), 'is_completed' => $is_completed));
+        } catch (Exception $th) {
+            $request=json_encode(array('lesson_id' => $lesson_id, 'course_progress' => round($course_progress), 'is_completed' => $is_completed,'user_id'=>$user_id));
+            $response= $th->getMessage();
+           logger(__METHOD__,$request,$response);
+        }
+       
     }
 
 
@@ -3829,87 +3847,102 @@ class Crud_model extends CI_Model
         $current_history = $this->db->get_where('watched_duration', $data);
         $course_details = $this->db->get_where('course', ['id' => $data['watched_course_id']])->row_array();
 
-
-        if ($current_history->num_rows() > 0) {
-            $current_history = $current_history->row_array();
-            $watched_duration_arr = json_decode($current_history['watched_counter'], true);
-            if (!is_array($watched_duration_arr)) $watched_duration_arr = array();
-            if (!in_array($current_duration, $watched_duration_arr)) {
-                array_push($watched_duration_arr, $current_duration);
+        try {
+            $this->db->trans_start();
+            if ($current_history->num_rows() > 0) {
+                $current_history = $current_history->row_array();
+                $watched_duration_arr = json_decode($current_history['watched_counter'], true);
+                if (!is_array($watched_duration_arr)) $watched_duration_arr = array();
+                if (!in_array($current_duration, $watched_duration_arr)) {
+                    array_push($watched_duration_arr, $current_duration);
+                }
+    
+                $watched_duration_json = json_encode($watched_duration_arr);
+    
+                $this->db->where('watched_course_id', $data['watched_course_id']);
+                $this->db->where('watched_lesson_id', $data['watched_lesson_id']);
+                $this->db->where('watched_student_id', $data['watched_student_id']);
+                $this->db->update('watched_duration', array('watched_counter' => $watched_duration_json, 'current_duration' => $current_duration));
+            } else {
+                $watched_duration_arr = array($current_duration);
+                $data['current_duration'] = $current_duration;
+                $data['watched_counter'] = json_encode($watched_duration_arr);
+                $this->db->insert('watched_duration', $data);
             }
-
-            $watched_duration_json = json_encode($watched_duration_arr);
-
-            $this->db->where('watched_course_id', $data['watched_course_id']);
-            $this->db->where('watched_lesson_id', $data['watched_lesson_id']);
-            $this->db->where('watched_student_id', $data['watched_student_id']);
-            $this->db->update('watched_duration', array('watched_counter' => $watched_duration_json, 'current_duration' => $current_duration));
-        } else {
-            $watched_duration_arr = array($current_duration);
-            $data['current_duration'] = $current_duration;
-            $data['watched_counter'] = json_encode($watched_duration_arr);
-            $this->db->insert('watched_duration', $data);
-        }
-
-        if($course_details['enable_drip_content'] != true){
-            return json_encode(array('lesson_id' => $data['watched_lesson_id'], 'course_progress' => null, 'is_completed' => null));
-        }
-
-
-        $drip_content_settings = json_decode(get_settings('drip_content_settings'), true);
-        $lesson_total_duration = $this->db->get_where('lesson', array('id' => $data['watched_lesson_id']))->row('duration');
-        $lesson_total_duration = explode(':', $lesson_total_duration);
-        $lesson_total_seconds = ($lesson_total_duration[0] * 3600) + ($lesson_total_duration[1] * 60) + $lesson_total_duration[2];
-        $current_total_seconds = count($watched_duration_arr) * 5;
-
-        if ($drip_content_settings['lesson_completion_role'] == 'duration') {
-            if ($current_total_seconds >= $drip_content_settings['minimum_duration']) {
-                $is_completed = 1;
-            } elseif (($current_total_seconds + 4) >= $lesson_total_seconds) {
-                $is_completed = 1;
+    
+            if($course_details['enable_drip_content'] != true){
+                return json_encode(array('lesson_id' => $data['watched_lesson_id'], 'course_progress' => null, 'is_completed' => null));
             }
-        } else {
-            $required_duration = ($lesson_total_seconds / 100) * $drip_content_settings['minimum_percentage'];
-            if ($current_duration >= $required_duration) {
-                $is_completed = 1;
-            } elseif (($current_total_seconds + 4) >= $lesson_total_seconds) {
-                $is_completed = 1;
+    
+    
+            $drip_content_settings = json_decode(get_settings('drip_content_settings'), true);
+            $lesson_total_duration = $this->db->get_where('lesson', array('id' => $data['watched_lesson_id']))->row('duration');
+            $lesson_total_duration = explode(':', $lesson_total_duration);
+            $lesson_total_seconds = ($lesson_total_duration[0] * 3600) + ($lesson_total_duration[1] * 60) + $lesson_total_duration[2];
+            $current_total_seconds = count($watched_duration_arr) * 5;
+    
+            if ($drip_content_settings['lesson_completion_role'] == 'duration') {
+                if ($current_total_seconds >= $drip_content_settings['minimum_duration']) {
+                    $is_completed = 1;
+                } elseif (($current_total_seconds + 4) >= $lesson_total_seconds) {
+                    $is_completed = 1;
+                }
+            } else {
+                $required_duration = ($lesson_total_seconds / 100) * $drip_content_settings['minimum_percentage'];
+                if ($current_duration >= $required_duration) {
+                    $is_completed = 1;
+                } elseif (($current_total_seconds + 4) >= $lesson_total_seconds) {
+                    $is_completed = 1;
+                }
             }
-        }
-
-        if ($is_completed == 1) {
-            $query = $this->db->get_where('watch_histories', array('course_id' => $data['watched_course_id'], 'student_id' => $data['watched_student_id']));
-            $course_progress = $query->row('course_progress');
-
-            if ($query->num_rows() > 0) {
-                $lesson_ids = json_decode($query->row('completed_lesson'), true);
-                if (!is_array($lesson_ids)) $lesson_ids = array();
-                if (!in_array($data['watched_lesson_id'], $lesson_ids)) {
-                    array_push($lesson_ids, $data['watched_lesson_id']);
-                    $total_lesson = $this->db->get_where('lesson', array('course_id' => $data['watched_course_id']))->num_rows();
-                    $course_progress = (100 / $total_lesson) * count($lesson_ids);
-
-                    if($course_progress >= 100 && $query->row('completed_date') == null){
-                        $this->email_model->course_completion($user_id, $course_details['id']);
-                        $completed_date = time();
-                    }else{
-                        $completed_date = $query->row('completed_date');
-                    }
-
-                    $this->db->where('watch_history_id', $query->row('watch_history_id'));
-                    $this->db->update('watch_histories', array('course_progress' => $course_progress, 'completed_lesson' => json_encode($lesson_ids), 'completed_date' => $completed_date, 'date_updated' => time()));
-
-                    // CHECK IF THE USER IS ELIGIBLE FOR CERTIFICATE
-                    if (addon_status('certificate') && $course_progress >= 100) {
-                        $this->load->model('addons/Certificate_model', 'certificate_model');
-                        $this->certificate_model->check_certificate_eligibility($data['watched_course_id'], $data['watched_student_id']);
+    
+            if ($is_completed == 1) {
+                $query = $this->db->get_where('watch_histories', array('course_id' => $data['watched_course_id'], 'student_id' => $data['watched_student_id']));
+                $course_progress = $query->row('course_progress');
+    
+                if ($query->num_rows() > 0) {
+                    $lesson_ids = json_decode($query->row('completed_lesson'), true);
+                    if (!is_array($lesson_ids)) $lesson_ids = array();
+                    if (!in_array($data['watched_lesson_id'], $lesson_ids)) {
+                        array_push($lesson_ids, $data['watched_lesson_id']);
+                        $total_lesson = $this->db->get_where('lesson', array('course_id' => $data['watched_course_id']))->num_rows();
+                        $course_progress = (100 / $total_lesson) * count($lesson_ids);
+    
+                        if($course_progress >= 100 && $query->row('completed_date') == null){
+                            $this->email_model->course_completion($user_id, $course_details['id']);
+                            $completed_date = time();
+                        }else{
+                            $completed_date = $query->row('completed_date');
+                        }
+    
+                        $this->db->where('watch_history_id', $query->row('watch_history_id'));
+                        $this->db->update('watch_histories', array('course_progress' => $course_progress, 'completed_lesson' => json_encode($lesson_ids), 'completed_date' => $completed_date, 'date_updated' => time()));
+    
+                        // CHECK IF THE USER IS ELIGIBLE FOR CERTIFICATE
+                        if (addon_status('certificate') && $course_progress >= 100) {
+                            $this->load->model('addons/Certificate_model', 'certificate_model');
+                            $this->certificate_model->check_certificate_eligibility($data['watched_course_id'], $data['watched_student_id']);
+                        }
                     }
                 }
             }
+    
+            $portal_user_id = $this->session->userdata('portal_user_id');
+            if(isset($portal_user_id) && !empty($portal_user_id) && round($course_progress) ==100) {
+                $user_id = $this->session->userdata('user_id');        
+                $durationUpdateResponse=   $this->api_model->hccb_update_watch_history_with_duration_post( $user_id,$data['watched_course_id'],$portal_user_id);     
+                $durationUpdateResponse_fromNM=   $this->api_model->update_watch_history_with_duration_to_NM( $durationUpdateResponse); 
+            }
+            $this->db->trans_complete();
+            return json_encode(array('lesson_id' => $data['watched_lesson_id'], 'course_progress' => round($course_progress), 'is_completed' => $is_completed));
+        } catch (Exception $th) {
+            $request=json_encode(array('lesson_id' => $data['watched_lesson_id'], 'course_progress' => round($course_progress), 'is_completed' => $is_completed,'user_id'=>$user_id));
+            $response= $th->getMessage();
+           logger(__METHOD__,$request,$response);
         }
-        return json_encode(array('lesson_id' => $data['watched_lesson_id'], 'course_progress' => round($course_progress), 'is_completed' => $is_completed));
+ 
+       
     }
-
     function get_top_instructor($limit = 10)
     {
         $query = $this->db

@@ -95,3 +95,29 @@ $route['my_bookings'] = "addons/tutor_booking/booked_schedules_student";
 //End tutor booking
 
 $route['translate_uri_dashes'] = FALSE;
+
+$route['token'] = 'Oauth/nm_token';
+$route['token/refresh'] = 'Oauth/nm_token_refresh';
+$route['course/subscribe'] = 'Hccb/subscribe_NM_course';
+$route['course/access'] = 'Hccb/course_NM_by_id';
+$route['nm/api/student/progress'] = 'Hccb/course_progress';
+
+
+
+$route['oauth/token'] = 'Oauth/token';
+$route['oauth/authorize'] = 'Oauth/authorize';
+$route['oauth/create'] = 'Oauth/create_client';
+$route['oauth/test'] = 'Oauth/test';
+
+
+
+
+//HCCB TN LMS API
+$route['hccb/register'] = 'Hccb/signup';
+$route['hccb/subscribe'] = 'Hccb/subscribe_course';
+$route['hccb/user/course'] = 'Hccb/user_courses';
+$route['hccb/course/access/(:any)/(:any)'] = 'Hccb/course_by_id/$1/$2';
+$route['hccb/course/student/(:any)/(:any)'] = 'Hccb/course_progress/$1/$2';
+
+
+

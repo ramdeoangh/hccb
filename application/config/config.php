@@ -217,6 +217,7 @@ $config['allow_get_array'] = TRUE;
 |	2 = Debug Messages
 |	3 = Informational Messages
 |	4 = All Messages
+|   5 = CUSTOM Messages
 |
 | You can also pass an array with threshold levels to show individual error types
 |
@@ -226,7 +227,7 @@ $config['allow_get_array'] = TRUE;
 | your log files will fill up very fast.
 |
 */
-$config['log_threshold'] = 0;
+$config['log_threshold'] = 5;
 
 /*
 |--------------------------------------------------------------------------

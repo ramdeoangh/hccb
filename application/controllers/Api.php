@@ -6,6 +6,7 @@ require APPPATH . 'libraries/REST_Controller.php';
 class Api extends REST_Controller {
 
   protected $token;
+  protected $server;
   public function __construct()
   {
     parent::__construct();
@@ -14,11 +15,16 @@ class Api extends REST_Controller {
     
     $this->load->database();
     $this->load->library('session');
+    $this->server=$this->oauth_model->getServer();
     // creating object of TokenHandler class at first
     $this->tokenHandler = new TokenHandler();
     header('Content-Type: application/json');
 
+
+
   }
+
+ 
 
   public function web_redirect_to_buy_course_get($auth_token = "", $course_id = "", $app_url = ""){
     $this->load->library('session');
@@ -88,6 +94,11 @@ class Api extends REST_Controller {
   public function top_courses_get($top_course_id = "") {
     $top_courses = array();
     $top_courses = $this->api_model->top_courses_get($top_course_id);
+    if(!$this->oauth_model->validateAccessToken()){
+      $response = array('status' => 401, 'message' => 'Unauthorize request');
+      $this->set_response($response, REST_Controller::HTTP_UNAUTHORIZED);
+    }
+
     $this->set_response($top_courses, REST_Controller::HTTP_OK);
   }
 
@@ -131,6 +142,13 @@ class Api extends REST_Controller {
 
   // Fetch all the courses belong to a certain category
   public function languages_get() {
+
+    if(!$this->oauth_model->validateAccessToken()){
+      $response = array('status' => 401, 'message' => 'Unauthorize request');
+      $this->set_response($response, REST_Controller::HTTP_UNAUTHORIZED);
+      return;
+    }
+
     $languages = $this->api_model->languages_get();
     $this->set_response($languages, REST_Controller::HTTP_OK);
   }
@@ -224,6 +242,7 @@ class Api extends REST_Controller {
     $response = $this->api_model->signup_post();
     return $this->set_response($response, REST_Controller::HTTP_OK);
   }
+
 
   // Verify Email Api
   public function verify_email_address_post(){
@@ -854,6 +873,21 @@ class Api extends REST_Controller {
       
       $this->set_response($response, REST_Controller::HTTP_OK);
   }
+
+
+
+  public function hccbsignup_post() {    
+    if(!$this->oauth_model->validateAccessToken()){
+      $response = array('status' => 401, 'message' => 'Unauthorize request');
+      $this->set_response($response, REST_Controller::HTTP_UNAUTHORIZED);
+      return;
+    }
+    $response = array();
+    $response = $this->api_model->signup_post();
+    return $this->set_response($response, REST_Controller::HTTP_OK);
+  }
+
+ 
 
 
 

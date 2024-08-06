@@ -472,6 +472,49 @@ if ( ! function_exists('log_message'))
 
 // ------------------------------------------------------------------------
 
+
+// ------------------------------------------------------------------------
+
+if ( ! function_exists('logger'))
+{
+	/**
+	 * Custom Error Logging Interface
+	 *
+	 * We use this as a simple mechanism to access the logging
+	 * class and send messages to be logged.
+	 *
+	 * @param	string	method_name
+	 * @param	string	request_data
+	 * @param	string	response_data
+	 * @return	void
+	 */
+	function logger($method_name,$request,$response)
+	{
+		$log= array("method_name"=>null,"request_data"=>null,"response_data"=>null);  
+       
+        $log["HTTP_HOST"]=$_SERVER['HTTP_HOST'];
+        $log["SERVER_NAME"]=$_SERVER['SERVER_NAME'];
+        $log["method_name"]=$method_name;
+        $log["request_data"]=$request;
+        $log["response_data"]=$response;
+		 
+		$level='CUSTOM';
+		static $_log;
+
+		if ($_log === NULL)
+		{
+			// references cannot be directly assigned to static variables, so we use an array
+			$_log[0] =& load_class('Log', 'core');
+		}
+
+		$_log[0]->write_custom_log($level,json_encode($log));
+	}
+}
+
+// ------------------------------------------------------------------------
+
+
+
 if ( ! function_exists('set_status_header'))
 {
 	/**
